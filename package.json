@@ -12,7 +12,7 @@
     "chalk": "^2.4.2",
     "chromedriver": "^76.0.1",
     "dotenv": "^8.1.0",
-    "mongoose": "^5.6.11",
+    "mongoose": "^5.7.5",
     "nightmare": "^3.0.2",
     "selenium-webdriver": "^4.0.0-alpha.4"
   }
