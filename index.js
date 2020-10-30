@@ -52,7 +52,7 @@ async function scrape(counts) {
 
     // PARSE PROJECT INFO
     if (!projectCountTarget) {
-      await driver.sleep(1500*slowFactor);
+      await driver.sleep(500 * slowFactor);
       projectList = await driver.findElements(
         By.css("#communityList1 > option")
       );
@@ -74,7 +74,7 @@ async function scrape(counts) {
     }
     let project;
     try {
-      await driver.sleep(1750*slowFactor); // reguarly needing retry- adding initial pause to increase intial success
+      await driver.sleep(750); // reguarly needing retry- adding initial pause to increase intial success
       project = await helpers.selectOption(
         driver,
         communityListSel,
@@ -85,7 +85,7 @@ async function scrape(counts) {
       try {
         console.log(chalk.red("couldnt select options 😢"));
         console.log("trying again");
-        await driver.sleep(6000*slowFactor);
+        await driver.sleep(3000 * slowFactor);
         project = await helpers.selectOption(
           driver,
           communityListSel,
@@ -96,7 +96,7 @@ async function scrape(counts) {
         try {
           console.log(chalk.red("really couldnt select options 😢 😢 😢"));
           console.log("trying one last time...");
-          await driver.sleep(12000*slowFactor);
+          await driver.sleep(6000 * slowFactor);
           project = await helpers.selectOption(
             driver,
             communityListSel,
@@ -129,7 +129,7 @@ async function scrape(counts) {
 
     await project.click();
     await helpers.findAndClickElement(driver, "input[name='refreshButton']");
-    await driver.sleep(1250*slowFactor);
+    await driver.sleep(1250 * slowFactor);
     await helpers.waitForSelector(driver, "#subjectsList");
 
     // PARSE SUBJECT INFO
@@ -184,8 +184,30 @@ async function scrape(counts) {
     if (topicList) console.log(chalk.cyan("Topic List found!"));
     // TOPIC INFO
     // let topicList = await subject.findElement({ xpath: "./ul[1]" });
-    await driver.sleep(200*slowFactor);
+    await driver.sleep(200);
     let topicListEls = await topicList.findElements({ xpath: "./li" });
+    if (!topicListEls || topicListEls.length === 0) {
+      if (!topicListEls) {
+        console.log(chalk.red("No topic list found!"), "...trying agin");
+      }
+      await driver.sleep(400 * slowFactor);
+      topicListEls = await topicList.findElements({ xpath: "./li" });
+      if (topicListEls.length === 0) {
+        // subject has no topics
+        console.log("subject has no topics");
+        let results = {
+          document: null,
+          counts: {
+            roomCount,
+            topicCount,
+            subjectCount,
+            projectCount,
+          },
+        };
+        return results;
+      }
+    }
+
     if (!currentTopicCountTarget) {
       // topicListEls = await topicList.findElements({ xpath: "./li" });
       currentTopicCountTarget = topicListEls.length;
@@ -194,25 +216,10 @@ async function scrape(counts) {
     if (topicListEls)
       console.log(chalk.cyan("Topic List elements :", topicListEls.length));
 
-    if (topicListEls.length === 0) {
-      // subject has no topics
-      console.log("subject has no topics");
-      let results = {
-        document: null,
-        counts: {
-          roomCount,
-          topicCount,
-          subjectCount,
-          projectCount,
-        },
-      };
-      return results;
-    }
-
     // let topicListEl = await topicList.findElement({
     //   xpath: `./li[${topicCount + 1}]`
     // });
-    await driver.sleep(250*slowFactor);
+    await driver.sleep(250);
     let topicListEl;
     try {
       topicListEl = await helpers.waitForElementsChild(
@@ -229,7 +236,7 @@ async function scrape(counts) {
         );
       }
       console.log("Err: Trying to find topic again...", err);
-      await driver.sleep(1500*slowFactor);
+      await driver.sleep(500 * slowFactor);
       topicListEl = await helpers.waitForElementsChild(
         driver,
         topicList,
@@ -242,6 +249,7 @@ async function scrape(counts) {
 
     // let roomExpandBtn = await topicListEl.findElement({ xpath: "./img[1]" });
     let roomExpandBtn;
+    await driver.sleep(250);
     try {
       roomExpandBtn = await helpers.waitForElementsChild(
         driver,
@@ -250,7 +258,7 @@ async function scrape(counts) {
       );
     } catch (err) {
       console.log("Err: Trying to find room expnd again...", err);
-      await driver.sleep(1500*slowFactor);
+      await driver.sleep(500 * slowFactor);
       roomExpandBtn = await helpers.waitForElementsChild(
         driver,
         topicListEl,
@@ -262,14 +270,25 @@ async function scrape(counts) {
     if (roomExpandBtn) console.log(chalk.cyan("Room expand button located!"));
     // ROOM INFO
     await roomExpandBtn.click();
-    await driver.sleep(750*slowFactor);
+    let topicLink;
+    await driver.sleep(250);
+    try {
+      // let topicLink = await topicListEl.findElement({ xpath: "./span/a" });
+      topicLink = await helpers.waitForElementsChild(
+        driver,
+        topicListEl,
+        "./span/a"
+      );
+    } catch (err) {
+      console.log("Err: Trying to topic link info again...", err);
+      await driver.sleep(500 * slowFactor);
+      topicLink = await helpers.waitForElementsChild(
+        driver,
+        topicListEl,
+        "./span/a"
+      );
+    }
 
-    // let topicLink = await topicListEl.findElement({ xpath: "./span/a" });
-    let topicLink = await helpers.waitForElementsChild(
-      driver,
-      topicListEl,
-      "./span/a"
-    );
     topicName = await topicLink.getAttribute("innerText");
 
     // PRINT Status: Topic Name
@@ -294,10 +313,13 @@ async function scrape(counts) {
     if (roomListEls.length === 0) {
       // no rooms afte expanding topic
       try {
-        await driver.sleep(1750*slowFactor);
+        await driver.sleep(750 * slowFactor);
         roomListEls = await roomList.findElements({ xpath: "./li" });
       } catch (err) {
-        console.log(chalk.red(err), chalk.cyan("no rooms after expanding topic: ", topicName));
+        console.log(
+          chalk.red(err),
+          chalk.cyan("no rooms after expanding topic: ", topicName)
+        );
         let results = {
           document: null,
           counts: {
@@ -317,7 +339,7 @@ async function scrape(counts) {
       )
     );
 
-    await driver.sleep(250*slowFactor);
+    await driver.sleep(250);
     // let room = await roomList.findElement({ xpath: `./li[${roomCount + 1}]` });
     let room = await helpers.waitForElementsChild(
       driver,
@@ -330,7 +352,7 @@ async function scrape(counts) {
       try {
         console.log(chalk.red("Room error :", err));
         console.log(chalk.gray(`Trying to find the room again...`));
-        await driver.sleep(2000*slowFactor);
+        await driver.sleep(1000 * slowFactor);
         if (!room) {
           console.log(
             chalk.cyan.bold(`Room list had elements but no room found`)
@@ -345,7 +367,7 @@ async function scrape(counts) {
       } catch (err) {
         console.log(chalk.red.bold("Room error repeat:", err));
         console.log(chalk.gray(`Trying to find the room one last time...`));
-        await driver.sleep(5000*slowFactor);
+        await driver.sleep(2500 * slowFactor);
         if (!room) {
           console.log(
             chalk.cyan.bold(`Room list had elements but no room found`)
@@ -356,7 +378,7 @@ async function scrape(counts) {
             `./li[${roomCount + 1}]`
           );
         }
-        await driver.sleep(1500*slowFactor);
+        await driver.sleep(500 * slowFactor);
         roomName = await room.getAttribute("innerText");
       }
     }
@@ -386,7 +408,7 @@ async function scrape(counts) {
     } catch (err) {
       console.log(chalk.red("CID error :", err));
       console.log(chalk.gray(`Trying to get the CID again...`));
-      await driver.sleep(2500*slowFactor);
+      await driver.sleep(1500 * slowFactor);
       if (!roomLink) {
         console.log(chalk.cyan.bold(`No Room-link element found!`));
         roomLink = await helpers.waitForElementsChild(driver, room, `./img`);
@@ -513,7 +535,7 @@ async function confirmFileDownloaded(fileName) {
           } else if (err) {
             currentTime = Date.now();
             // console.log({ currentTime: Date.now() });
-            if (currentTime - startTime > (11000*slowFactor*dlFactor)) {
+            if (currentTime - startTime > 11000 * slowFactor * dlFactor) {
               clearInterval(fileCheckerInterval);
               resolve();
             }
@@ -544,7 +566,7 @@ async function confirmCSVDownloaded(fileName) {
           } else if (err) {
             currentTime = Date.now();
             // console.log({ currentTime: Date.now() });
-            if (currentTime - startTime > (7000 * slowFactor*dlFactor)) {
+            if (currentTime - startTime > 7000 * slowFactor * dlFactor) {
               clearInterval(fileCheckerInterval);
               resolve();
             }
@@ -736,10 +758,10 @@ mongoose.connect(mongoURI, { useNewUrlParser: true }, (err, res) => {
   } else {
     console.log(chalk.blue("DB CONNECTION SUCCESS" + mongoURI));
     // Starting scrape position
-    let projectCount = 37; // start at 1 because 0 is "All" we dont want all we want each project individually so we get its actual name instead of the name "All"
+    let projectCount = 40; // start at 1 because 0 is "All" we dont want all we want each project individually so we get its actual name instead of the name "All"
     let subjectCount = 0;
-    let topicCount = 3;
-    let roomCount = 1;
+    let topicCount = 5;
+    let roomCount = 0;
     const counts = { projectCount, subjectCount, topicCount, roomCount };
     console.log("Counts:", counts);
     console.log(
