@@ -9,7 +9,7 @@ const path = require("path");
 // const css = require('./selectors');
 
 // testing timeout values
-const slowFactor = 1.3;
+const slowFactor = 1.5;
 const timeoutMs = 4000 * (slowFactor); // timeout per await
 let TOstr = ( slowFactor * 20 ) + 's'
 const timeoutTestMsStr = TOstr; // timeout per test

@@ -11,7 +11,7 @@ const Room = require("./Room");
 const { Builder, By } = require("selenium-webdriver");
 const helpers = require("./helpers");
 const slowFactor = helpers.slowFactor;
-const dlFactor = 10;
+const dlFactor = 3;
 let projectCountTarget;
 let currentSubjectCountTarget;
 let currentTopicCountTarget;
@@ -144,24 +144,33 @@ async function scrape(counts) {
         chalk.cyan(projectName, " has ", subjectListItems.length, " subjects.")
       );
 
+    if (subjectListItems.length === 0) {
+      console.log("Project has no subjects, looking again...");
+      await driver.sleep(250 * slowFactor);
+      subjectListItems = await helpers.getWebElements(
+        driver,
+        subjectListItemSel
+      );
+      if (subjectListItems.length === 0) {
+        console.log(chalk.red("Project has no subjects"));
+        // project has no subjects
+        let results = {
+          document: null,
+          counts: {
+            roomCount,
+            topicCount,
+            subjectCount,
+            projectCount,
+          },
+        };
+        return results;
+      }
+    }
+
     if (!currentSubjectCountTarget) {
       currentSubjectCountTarget = subjectListItems.length - 1;
     }
 
-    if (subjectListItems.length === 0) {
-      console.log("Project has no subjects");
-      // project has no subjects
-      let results = {
-        document: null,
-        counts: {
-          roomCount,
-          topicCount,
-          subjectCount,
-          projectCount,
-        },
-      };
-      return results;
-    }
     let subject = subjectListItems[subjectCount];
     let subjectName = await subject.getAttribute("innerText");
     // PRINT Status: Subject Name
@@ -184,17 +193,17 @@ async function scrape(counts) {
     if (topicList) console.log(chalk.cyan("Topic List found!"));
     // TOPIC INFO
     // let topicList = await subject.findElement({ xpath: "./ul[1]" });
-    await driver.sleep(200);
+    await driver.sleep(350);
     let topicListEls = await topicList.findElements({ xpath: "./li" });
     if (!topicListEls || topicListEls.length === 0) {
       if (!topicListEls) {
         console.log(chalk.red("No topic list found!"), "...trying agin");
       }
-      await driver.sleep(400 * slowFactor);
+      await driver.sleep(750 * slowFactor);
       topicListEls = await topicList.findElements({ xpath: "./li" });
       if (topicListEls.length === 0) {
         // subject has no topics
-        console.log("subject has no topics");
+        console.log(chalk.red("subject has no topics"));
         let results = {
           document: null,
           counts: {
@@ -758,10 +767,10 @@ mongoose.connect(mongoURI, { useNewUrlParser: true }, (err, res) => {
   } else {
     console.log(chalk.blue("DB CONNECTION SUCCESS" + mongoURI));
     // Starting scrape position
-    let projectCount = 40; // start at 1 because 0 is "All" we dont want all we want each project individually so we get its actual name instead of the name "All"
+    let projectCount = 151; // start at 1 because 0 is "All" we dont want all we want each project individually so we get its actual name instead of the name "All"
     let subjectCount = 0;
-    let topicCount = 5;
-    let roomCount = 0;
+    let topicCount = 1;
+    let roomCount = 1;
     const counts = { projectCount, subjectCount, topicCount, roomCount };
     console.log("Counts:", counts);
     console.log(
